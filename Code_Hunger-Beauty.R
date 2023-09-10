@@ -182,7 +182,7 @@ describeBy(df2$hungry, df2$treat)
 
 t.test(hungry ~ treat, df2, var.equal = TRUE)
 
-# Linear regression
+# Linear mixed model
 
 # Showing significant Treat*Pic_Gender interaction at Par_Gender == Men and
 # at both Pic_Cue == Neutral and Pic_Cue == Sex Cue
