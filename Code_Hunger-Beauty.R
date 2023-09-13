@@ -170,7 +170,7 @@ df2_long <- df2_long %>% mutate(
 )
 
 df2_long$pic_cue <- factor(df2_long$pic_cue, levels = c(0, 1),
-                              labels = c('Neutral Pictures', 'Sex Cue Pictures'))
+                              labels = c('Sexual Cue-Absent', 'Sexual Cue-Present'))
 
 df2_long$pic_gender <- factor(df2_long$pic_gender, levels = c(0, 1),
                                labels = c('Female Pictures', 'Male Pictures'))
@@ -185,7 +185,7 @@ t.test(hungry ~ treat, df2, var.equal = TRUE)
 # Linear mixed model
 
 # Showing significant Treat*Pic_Gender interaction at Par_Gender == Men and
-# at both Pic_Cue == Neutral and Pic_Cue == Sex Cue
+# at both Pic_Cue == Sexual Cue-Absent and Pic_Cue == Sexual Cue-Present
 lmx2_1 <- lmer(
   duration ~ treat*relevel(par_gender, ref = 'Men Participants')*pic_gender*pic_cue
   + (1 | id), df2_long
@@ -214,3 +214,80 @@ df2_mean <- emmip(lmx2, ~ treat | par_gender + pic_gender + pic_cue, CIs = TRUE,
                   pbkrtest.limit = 7872, lmerTest.limit = 7872,
                   plotit = FALSE)
 
+
+# Study 3 ####
+
+
+## Data Management ====
+
+df3 <- readxl::read_excel('Data_Study3.xlsx')
+
+# Rename and recode variables in raw data
+df3 <- df3 %>% mutate(
+  par_gender = case_when(male1 == 1 ~ 1,
+                         male1 == 2 ~ 0),
+  treat = case_when(hunger1 == 1 ~ 1,
+                    hunger1 == 2 ~ 0),
+  pic_cue = case_when(pic_cat %in% c(1, 3) ~ 0,
+                      pic_cat %in% c(2, 4) ~ 1),
+  pic_gender = case_when(pic_cat %in% c(1, 2) ~ 0,
+                         pic_cat %in% c(3, 4) ~ 1),
+  rst = rowMeans(select(., rst1:rst3), na.rm = TRUE),
+  male1 = NULL,
+  hunger1 = NULL
+)
+
+df3$par_gender <- factor(df3$par_gender, levels = c(0, 1),
+                         labels = c('Women Participants', 'Men Participants'))
+
+df3$treat <- factor(df3$treat, levels = c(0, 1),
+                    labels = c('Satiation', 'Hunger'))
+
+df3$pic_cue <- factor(df3$pic_cue, levels = c(0, 1),
+                           labels = c('Sexual Cue-Absent', 'Sexual Cue-Present'))
+
+df3$pic_gender <- factor(df3$pic_gender, levels = c(0, 1),
+                              labels = c('Female Pictures', 'Male Pictures'))
+
+# Reshape data to long format
+df3_long <- df3 %>% 
+  gather(rating_pic1:rating_pic3, key = 'pic', value = 'rating') %>% 
+  arrange(id)
+
+## Analysis ====
+
+# Reliability of the rewarding-seeking tendency measures
+
+alpha(df3[, 2:4])
+
+# Linear mixed model
+
+# Showing significant Treat*Pic_Gender interaction at Par_Gender == Men and
+# at both Pic_Cue == Sexual Cue-Absent and Pic_Cue == Sexual Cue-Present
+lmx3_1 <- lmer(
+  rating ~ treat*relevel(par_gender, ref = 'Men Participants')*pic_gender*pic_cue
+  + (1 | id), df3_long
+)
+
+summary(lmx3_1)
+
+# Showing significant Treat*Pic_Cue interaction at Par_Gender == Women and
+# at Pic_Gender == Male
+lmx3_2 <- lmer(
+  rating ~ treat*par_gender*relevel(pic_gender, ref = 'Male Pictures')*pic_cue
+  + (1 | id), df3_long
+)
+
+summary(lmx3_2)
+
+## Figures ====
+
+# Get mean attractiveness ratings in each cell
+
+lmx3 <- lmer(
+  rating ~ treat*par_gender*pic_gender*pic_cue + (1 | id), df3_long
+)
+
+df3_mean <- emmip(lmx3, ~ treat | par_gender + pic_gender + pic_cue, CIs = TRUE,
+                  pbkrtest.limit = 7872, lmerTest.limit = 7872,
+                  plotit = FALSE)
