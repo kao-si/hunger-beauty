@@ -10,6 +10,7 @@ library(lmerTest)
 library(emmeans)
 library(pbkrtest)
 library(broom)
+library(bruceR)
 
 
 # Study 1A ####
@@ -163,8 +164,8 @@ df2_long <- df2 %>%
 
 # Create dummy variables that identify the category of the pictures
 df2_long <- df2_long %>% mutate(
-  pic_cue = case_when(str_detect(pic, '^Neutral') ~ 0,
-                         !str_detect(pic, '^Neutral') ~ 1),
+  pic_cue = case_when(str_detect(pic, 'Neutral') ~ 0,
+                         !str_detect(pic, 'Neutral') ~ 1),
   pic_gender = case_when(str_detect(pic, 'Woman') ~ 0,
                          str_detect(pic, 'Man') ~ 1)
 )
@@ -280,6 +281,24 @@ lmx3_2 <- lmer(
 
 summary(lmx3_2)
 
+# Mediation Analyses: 'Treat -> RST -> Rating'
+
+# For men participants viewing female pictures
+me1 <- PROCESS(
+  df3_long[df3_long$par_gender == 'Men Participants' & 
+             df3_long$pic_gender == 'Female Pictures', ], 
+        y = 'rating', x = 'treat', meds = 'rst', nsim = 1000, seed = 123
+  )
+
+# For women participants viewing sexual cue-present male pictures
+me2 <- PROCESS(
+  df3_long[df3_long$par_gender == 'Women Participants' & 
+             df3_long$pic_gender == 'Male Pictures' &
+             df3_long$pic_cue == 'Sexual Cue-Present', ], 
+  y = 'rating', x = 'treat', meds = 'rst', nsim = 1000, seed = 123
+)
+
+
 ## Figures ====
 
 # Get mean attractiveness ratings in each cell
@@ -291,3 +310,91 @@ lmx3 <- lmer(
 df3_mean <- emmip(lmx3, ~ treat | par_gender + pic_gender + pic_cue, CIs = TRUE,
                   pbkrtest.limit = 7872, lmerTest.limit = 7872,
                   plotit = FALSE)
+
+
+# Study 5 ####
+
+
+## Data Management ====
+
+df5 <- readxl::read_excel('Data_Study5.xlsx')
+
+# Rename and recode variables in raw data
+df5 <- df5 %>% mutate(
+  par_gender = case_when(male1 == 1 ~ 1,
+                         male1 == 2 ~ 0),
+  treat = case_when(hunger1 == 1 ~ 1,
+                    hunger1 == 2 ~ 0),
+  male1 = NULL,
+  hunger1 = NULL
+)
+
+df5$par_gender <- factor(df5$par_gender, levels = c(0, 1),
+                         labels = c('Women Participants', 'Men Participants'))
+
+df5$treat <- factor(df5$treat, levels = c(0, 1),
+                    labels = c('Satiation', 'Hunger'))
+
+# Reshape data to long format
+df5_long <- df5 %>% 
+  gather('Neutral Woman (Image 1)':'Male Lion  (Image 3)', 
+         key = 'pic', value = 'rating') %>% 
+  arrange(id)
+
+# Create dummy variables that identify the category of the pictures
+df5_long <- df5_long %>% mutate(
+  pic_cue = case_when(str_detect(pic, 'Neutral') ~ 0,
+                      str_detect(pic, 'Sexy|Muscular') ~ 1,
+                      str_detect(pic, 'Flower|Lion') ~ 2),
+  pic_gender = case_when(str_detect(pic, 'Woman|Flower') ~ 0,
+                         str_detect(pic, 'Man|Lion') ~ 1)
+)
+
+df5_long$pic_cue <- factor(df5_long$pic_cue, levels = c(0, 1, 2),
+                           labels = c('Sexual Cue-Absent', 
+                                      'Sexual Cue-Present',
+                                      'Non-Human Cue'))
+
+df5_long$pic_gender <- factor(df5_long$pic_gender, levels = c(0, 1),
+                              labels = c('Female Pictures', 'Male Pictures'))
+
+## Analysis ====
+
+# Manipulation check on felt hunger across different treatment conditions
+describeBy(df5$hungry, df5$treat)
+
+t.test(hungry ~ treat, df5, var.equal = TRUE)
+
+# Linear mixed model
+
+# Showing significant Treat*Pic_Gender interaction at Par_Gender == Men and
+# at Pic_Cue == Sexual Cue-Absent and Pic_Cue == Sexual Cue-Present and
+# Pic_Cue == Non-Human Cue
+lmx5_1 <- lmer(
+  rating ~ treat*relevel(par_gender, ref = 'Men Participants')*pic_gender*pic_cue
+  + (1 | id), df5_long
+)
+
+summary(lmx5_1)
+
+# Showing significant Treat*Pic_Gender interaction at Par_Gender == Women and
+# at Pic_Cue == Sexual Cue-Present and Pic_Cue == Non-Human Cue
+lmx5_2 <- lmer(
+  rating ~ treat*par_gender*pic_gender*relevel(pic_cue, ref = 'Sexual Cue-Present')
+  + (1 | id), df5_long
+)
+
+summary(lmx5_2)
+
+## Figures ====
+
+# Get mean attractiveness ratings in each cell
+
+lmx5 <- lmer(
+  rating ~ treat*par_gender*pic_gender*pic_cue + (1 | id), df5_long
+)
+
+df5_mean <- emmip(lmx5, ~ treat | par_gender + pic_gender + pic_cue, CIs = TRUE,
+                  pbkrtest.limit = 3060, lmerTest.limit = 3060,
+                  plotit = FALSE)
+
