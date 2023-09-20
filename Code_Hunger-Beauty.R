@@ -11,6 +11,7 @@ library(emmeans)
 library(pbkrtest)
 library(broom)
 library(bruceR)
+library(lemon)
 
 
 # Study 1A ####
@@ -70,14 +71,12 @@ lmx1a_2 <- lmer(rating ~ treat*par_gender*pic_gender + (1 | id), df1a_long)
 
 summary(lmx1a_2)
 
-## Figures ====
+## Figure 1 ====
 
 # Get mean attractiveness ratings in each cell
-
 df1a_mean <- emmip(lmx1a_2, ~ treat | par_gender + pic_gender, CIs = TRUE,
-      pbkrtest.limit = 10080, lmerTest.limit = 10080,
-      plotit = FALSE)
-
+                   pbkrtest.limit = 10080, lmerTest.limit = 10080,
+                   plotit = FALSE)
 
 # Study 1B ####
 
@@ -126,7 +125,7 @@ lm1b_2 <- lm(rating ~ treat*par_gender*pic_gender, df1b)
 
 tidy(lm1b_2)
 
-## Figures ====
+## Figure 2 ====
 
 # Get mean attractiveness ratings in each cell
 
@@ -203,7 +202,7 @@ lmx2_2 <- lmer(
 
 summary(lmx2_2)
 
-## Figures ====
+## Figure 3 ====
 
 # Get mean attractiveness ratings in each cell
 
@@ -299,7 +298,7 @@ me2 <- PROCESS(
 )
 
 
-## Figures ====
+## Figure 4 ====
 
 # Get mean attractiveness ratings in each cell
 
@@ -386,7 +385,7 @@ lmx5_2 <- lmer(
 
 summary(lmx5_2)
 
-## Figures ====
+## Figure 6 ====
 
 # Get mean attractiveness ratings in each cell
 
